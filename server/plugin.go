@@ -10,6 +10,21 @@ import (
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
+var generatedKeyValues = []string{
+	"token_secret",
+	"rsa_key",
+}
+
+func isGeneratedKeyValue(key string) bool {
+	for _, name := range generatedKeyValues {
+		if name == key {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {
 	plugin.MattermostPlugin

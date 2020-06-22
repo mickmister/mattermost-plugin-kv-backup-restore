@@ -52,8 +52,11 @@ func executeRestore(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 		switch value.(type) {
 		case string:
 			toSave = []byte(value.(string))
-			if key == "token_secret" {
-				base64.StdEncoding.Decode(toSave, []byte(value.(string)))
+			if isGeneratedKeyValue(key) {
+				toSave, err = base64.StdEncoding.DecodeString(value.(string))
+				if err != nil {
+					return p.responsef(cmdArgs, "Error decoding key `%s`. err=%v", key, err)
+				}
 			}
 		default:
 			b, err := json.Marshal(value)
@@ -78,7 +81,7 @@ func executeRestore(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 		}
 	}
 
-	return p.responsef(cmdArgs, "Successfully restored %d keys", len(out))
+	return p.responsef(cmdArgs, "Successfully restored %d values", len(out))
 }
 
 func (p *Plugin) getRecentPostFileID(channelID string) (string, error) {

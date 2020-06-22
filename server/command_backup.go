@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -29,18 +28,21 @@ func executeBackup(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, arg
 		}
 
 		s := string(value)
-		if len(s) > 0 && (s[0] == '{' || s[0] == '[') {
+		if isGeneratedKeyValue(key) {
+			s = `"` + base64.StdEncoding.EncodeToString(value) + `"`
+		} else if len(s) > 0 && (s[0] == '{' || s[0] == '[') {
 			var buf bytes.Buffer
 			err := json.Indent(&buf, value, "  ", "  ")
 			if err == nil {
 				s = string(buf.Bytes())
 			}
-		} else if key == "token_secret" {
-			s = `"` + base64.StdEncoding.EncodeToString(value) + `"`
-		} else if len(s) > 0 && s[0] == '"' {
-			s = `"` + strings.ReplaceAll(s, `"`, `\"`) + `"`
 		} else {
-			s = `"` + s + `"`
+			b, err := json.Marshal(s)
+			if err != nil {
+				return p.responsef(cmdArgs, "Error marshaling value for key `%s`. err=%v", key, err)
+			}
+
+			s = string(b)
 		}
 
 		comma := ",\n"

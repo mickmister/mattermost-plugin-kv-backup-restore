@@ -40,9 +40,27 @@ func executeBackup(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, arg
 			comma = ""
 		}
 		allValues += fmt.Sprintf("  \"%s\": %s%s", key, s, comma)
-
 	}
 
-	res := fmt.Sprintf("```json\n{\n%s\n}\n```", allValues)
-	return p.responsef(cmdArgs, "%s", res)
+	asJSON := fmt.Sprintf("{\n%s\n}", allValues)
+
+	post := &model.Post{
+		UserId:    cmdArgs.UserId,
+		ChannelId: cmdArgs.ChannelId,
+	}
+
+	res := fmt.Sprintf("```json\n%s\n```", asJSON)
+	if len(args) != 0 && args[0] == "file" {
+		fileInfo, appErr := p.API.UploadFile([]byte(asJSON), cmdArgs.ChannelId, manifest.Id+"-backup.json")
+		if appErr != nil {
+			return p.responsef(cmdArgs, "Error uploading result err=%v", appErr)
+		}
+
+		post.FileIds = append(post.FileIds, fileInfo.Id)
+		res = fmt.Sprintf("Backed up %d values", len(keys))
+	}
+
+	post.Message = res
+	p.API.CreatePost(post)
+	return &model.CommandResponse{}
 }

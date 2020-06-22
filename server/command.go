@@ -39,8 +39,9 @@ func (ch CommandHandler) Handle(p *Plugin, c *plugin.Context, header *model.Comm
 }
 
 func newCommand(pluginID string) *model.Command {
-	parentCmd := model.NewAutocompleteData("kvadmin", "(pluginid) [list|show|put|backup|restore|help]", "Manage and Backup/Restore data in your kv store.")
-	cmd := model.NewAutocompleteData("(pluginid)", "[list|show|put|backup|restore]", "Manage and Backup/Restore data in your kv store.")
+	trigger := "kvadmin-" + pluginID
+
+	cmd := model.NewAutocompleteData(trigger, "[list|show|put|backup|restore]", "Manage and Backup/Restore data in your kv store.")
 
 	listCmd := model.NewAutocompleteData("list", "[keys|table]", "List all keys in the kvstore.")
 	showCmd := model.NewAutocompleteData("show", "[key]", "Show the value of one kv entry.")
@@ -53,16 +54,15 @@ func newCommand(pluginID string) *model.Command {
 	cmd.AddCommand(updateCommand)
 	cmd.AddCommand(backupCmd)
 	cmd.AddCommand(restoreCmd)
-	parentCmd.AddCommand(cmd)
 
 	return &model.Command{
-		Trigger:          "kvadmin",
+		Trigger:          trigger,
 		Description:      "Manage and Backup/Restore data in your kv store.",
 		DisplayName:      "KV Backup/Restore",
 		AutoComplete:     true,
-		AutocompleteData: parentCmd,
-		AutoCompleteDesc: parentCmd.HelpText,
-		AutoCompleteHint: parentCmd.Hint,
+		AutocompleteData: cmd,
+		AutoCompleteDesc: cmd.HelpText,
+		AutoCompleteHint: cmd.Hint,
 	}
 }
 
@@ -72,19 +72,15 @@ func executeDefault(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, cmdArgs *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	args := strings.Fields(cmdArgs.Command)
-	if len(args) == 0 || args[0] != "/kvadmin" {
+	if len(args) == 0 || args[0] != "/kvadmin-"+manifest.Id {
 		return p.responsef(cmdArgs, "expected kvadmin command"), nil
 	}
 
-	if len(args) == 1 || args[1] != manifest.Id {
-		return p.responsef(cmdArgs, "Expected plugin id `%s`", manifest.Id), nil
-	}
-
-	if len(args) == 2 {
+	if len(args) == 1 {
 		return p.responsef(cmdArgs, p.getHelpText()), nil
 	}
 
-	return cmdHandler.Handle(p, c, cmdArgs, args[2:]...), nil
+	return cmdHandler.Handle(p, c, cmdArgs, args[1:]...), nil
 }
 
 func (p *Plugin) responsef(commandArgs *model.CommandArgs, format string, args ...interface{}) *model.CommandResponse {
@@ -102,5 +98,18 @@ func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 }
 
 func (p *Plugin) getHelpText() string {
-	return "Help Text"
+	commands := []string{
+		"- `list` - Returns a JSON array of all keys in your plugin's kv store",
+		"- `show` `(key)` - Returns value associated with the key",
+		"- `update` `(key)` `((data) | file (fileID))` - Updates or creates an entry for key. Provide raw data as an arg, or the word `file` along with an uploded file's `fileID`",
+		"	- `update` `mykey` `{\"some\": \"value\"}` - Uses raw data from command args",
+		"	- `update` `mykey` `file` `17a889qjmjg8zpf7qtys8oy5tw` - Uses previously uploaded file id",
+		"- `backup (file?)` -  Returns a JSON object for all key value entries",
+		"- `restore` `((data) | file (fileID))` - Similar to update, except for the whole store. First, it clears the store, then adds all contents provided.",
+		"	- `restore` `{\"mykey\": {\"some\": \"value\"}, \"other_key\": \"hello\"}` - Uses raw data from command args",
+		"	- `restore` `file` `17a889qjmjg8zpf7qtys8oy5tw` - Uses previously uploaded file id",
+		"- `delete` `mykey` - Deletes a key from the kv store",
+		"- `clear` - Clears all values in the kv store",
+	}
+	return strings.Join(commands, "\n")
 }

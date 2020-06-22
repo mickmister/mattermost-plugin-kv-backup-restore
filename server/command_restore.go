@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
@@ -18,11 +20,17 @@ func executeRestore(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 	var data []byte
 
 	if args[0] == "file" {
+		var fileID string
+		var err error
 		if len(args) == 1 {
-			return p.responsef(cmdArgs, "Please provide a file id.")
+			fileID, err = p.getRecentPostFileID(cmdArgs.ChannelId)
+			if err != nil {
+				return p.responsef(cmdArgs, "Error getting file id from previous post. err=%v", err)
+			}
+		} else {
+			fileID = args[1]
 		}
 
-		fileID := args[1]
 		file, appErr := p.API.GetFile(fileID)
 		if appErr != nil {
 			return p.responsef(cmdArgs, "Error fetching file `%s`. err=%v", fileID, appErr)
@@ -44,6 +52,9 @@ func executeRestore(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 		switch value.(type) {
 		case string:
 			toSave = []byte(value.(string))
+			if key == "token_secret" {
+				base64.StdEncoding.Decode(toSave, []byte(value.(string)))
+			}
 		default:
 			b, err := json.Marshal(value)
 			if err != nil {
@@ -67,5 +78,27 @@ func executeRestore(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 		}
 	}
 
-	return executeBackup(p, c, cmdArgs)
+	return p.responsef(cmdArgs, "Successfully restored %d keys", len(out))
+}
+
+func (p *Plugin) getRecentPostFileID(channelID string) (string, error) {
+	posts, appErr := p.API.GetPostsForChannel(channelID, 0, 1)
+	if appErr != nil {
+		return "", appErr
+	}
+
+	if len(posts.Posts) == 0 {
+		return "", errors.New("Previous post not found")
+	}
+
+	var post *model.Post
+	for _, p := range posts.Posts {
+		post = p
+	}
+
+	if len(post.FileIds) == 0 {
+		return "", errors.New("No file found on previous post")
+	}
+
+	return post.FileIds[0], nil
 }

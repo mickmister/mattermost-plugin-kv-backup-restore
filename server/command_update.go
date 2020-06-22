@@ -31,11 +31,17 @@ func executeUpdate(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, arg
 
 	var data []byte
 	if args[1] == "file" {
-		if len(args) == 2 && args[1] == "file" {
-			return p.responsef(cmdArgs, "Please provide a file id.")
+		var fileID string
+		var err error
+		if len(args) == 2 {
+			fileID, err = p.getRecentPostFileID(cmdArgs.ChannelId)
+			if err != nil {
+				return p.responsef(cmdArgs, "Error getting file id from previous post. err=%v", err)
+			}
+		} else {
+			fileID = args[2]
 		}
 
-		fileID := args[2]
 		file, appErr := p.API.GetFile(fileID)
 		if appErr != nil {
 			return p.responsef(cmdArgs, "Error fetching file `%s`. err=%v", fileID, appErr)

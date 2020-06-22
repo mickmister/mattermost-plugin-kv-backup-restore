@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -26,13 +28,19 @@ func executeBackup(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, arg
 			return p.responsef(cmdArgs, "Error getting value for key `%s`. err=%v", key, appErr)
 		}
 
-		s := `"` + string(value) + `"`
-		if len(s) > 2 && (s[1] == '{' || s[1] == '[') {
+		s := string(value)
+		if len(s) > 0 && (s[0] == '{' || s[0] == '[') {
 			var buf bytes.Buffer
 			err := json.Indent(&buf, value, "  ", "  ")
 			if err == nil {
 				s = string(buf.Bytes())
 			}
+		} else if key == "token_secret" {
+			s = `"` + base64.StdEncoding.EncodeToString(value) + `"`
+		} else if len(s) > 0 && s[0] == '"' {
+			s = `"` + strings.ReplaceAll(s, `"`, `\"`) + `"`
+		} else {
+			s = `"` + s + `"`
 		}
 
 		comma := ",\n"
@@ -44,21 +52,23 @@ func executeBackup(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, arg
 
 	asJSON := fmt.Sprintf("{\n%s\n}", allValues)
 
+	if len(args) == 0 || args[0] != "file" {
+		res := fmt.Sprintf("```json\n%s\n```", asJSON)
+		return p.responsef(cmdArgs, res)
+	}
+
 	post := &model.Post{
 		UserId:    cmdArgs.UserId,
 		ChannelId: cmdArgs.ChannelId,
 	}
 
-	res := fmt.Sprintf("```json\n%s\n```", asJSON)
-	if len(args) != 0 && args[0] == "file" {
-		fileInfo, appErr := p.API.UploadFile([]byte(asJSON), cmdArgs.ChannelId, manifest.Id+"-backup.json")
-		if appErr != nil {
-			return p.responsef(cmdArgs, "Error uploading result err=%v", appErr)
-		}
-
-		post.FileIds = append(post.FileIds, fileInfo.Id)
-		res = fmt.Sprintf("Backed up %d values", len(keys))
+	fileInfo, appErr := p.API.UploadFile([]byte(asJSON), cmdArgs.ChannelId, manifest.Id+"-backup.json")
+	if appErr != nil {
+		return p.responsef(cmdArgs, "Error uploading result err=%v", appErr)
 	}
+
+	post.FileIds = append(post.FileIds, fileInfo.Id)
+	res := fmt.Sprintf("Backed up %d values", len(keys))
 
 	post.Message = res
 	p.API.CreatePost(post)

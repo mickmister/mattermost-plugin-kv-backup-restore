@@ -15,7 +15,25 @@ func executeRestore(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 
 	out := map[string][]byte{}
 	values := map[string]interface{}{}
-	err := json.Unmarshal([]byte(strings.Join(args, " ")), &values)
+	var data []byte
+
+	if args[0] == "file" {
+		if len(args) == 1 {
+			return p.responsef(cmdArgs, "Please provide a file id.")
+		}
+
+		fileID := args[1]
+		file, appErr := p.API.GetFile(fileID)
+		if appErr != nil {
+			return p.responsef(cmdArgs, "Error fetching file `%s`. err=%v", fileID, appErr)
+		}
+
+		data = file
+	} else {
+		data = []byte(strings.Join(args, " "))
+	}
+
+	err := json.Unmarshal(data, &values)
 	if err != nil {
 		return p.responsef(cmdArgs, "Error unmarshaling payload. err=%v", err)
 	}

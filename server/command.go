@@ -94,16 +94,11 @@ func (p *Plugin) responsef(commandArgs *model.CommandArgs, format string, args .
 
 func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 	post := &model.Post{
-		// UserId:    p.getUserID(),
 		UserId:    args.UserId,
 		ChannelId: args.ChannelId,
 		Message:   text,
 	}
 	_ = p.API.SendEphemeralPost(args.UserId, post)
-}
-
-func webappSlashCommandWillBePostedHook() {
-	// add e2e encryption token at the front of the command
 }
 
 func (p *Plugin) getHelpText() string {

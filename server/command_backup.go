@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -64,7 +65,10 @@ func executeBackup(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, arg
 		ChannelId: cmdArgs.ChannelId,
 	}
 
-	fileInfo, appErr := p.API.UploadFile([]byte(asJSON), cmdArgs.ChannelId, manifest.Id+"-backup.json")
+	ts := time.Now().Format(time.Kitchen)
+	fname := fmt.Sprintf("%s-backup-%s.json", manifest.Id, ts)
+
+	fileInfo, appErr := p.API.UploadFile([]byte(asJSON), cmdArgs.ChannelId, fname)
 	if appErr != nil {
 		return p.responsef(cmdArgs, "Error uploading result err=%v", appErr)
 	}

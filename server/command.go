@@ -43,11 +43,11 @@ func newCommand(pluginID string) *model.Command {
 
 	cmd := model.NewAutocompleteData(trigger, "[list|show|put|backup|restore]", "Manage and Backup/Restore data in your kv store.")
 
-	listCmd := model.NewAutocompleteData("list", "[keys|table]", "List all keys in the kvstore.")
+	listCmd := model.NewAutocompleteData("list", "", "List all keys in the kvstore.")
 	showCmd := model.NewAutocompleteData("show", "[key]", "Show the value of one kv entry.")
-	updateCommand := model.NewAutocompleteData("update", "[key] [value]", "Update one kv entry's value.")
-	backupCmd := model.NewAutocompleteData("backup", "", "Receive a json blob of the whole kvstore for this plugin.")
-	restoreCmd := model.NewAutocompleteData("restore", "[json blob]", "Set all key values in the kvstore.")
+	updateCommand := model.NewAutocompleteData("update", "[key] [value | file]", "Update one kv entry's value.")
+	backupCmd := model.NewAutocompleteData("backup", "[file?]", "Receive a json blob of the whole kvstore for this plugin. Use `file` to receive a file instead. Using the `file` argument will result in a public post.")
+	restoreCmd := model.NewAutocompleteData("restore", "[json blob | file]", "Set all key values in the kvstore. Provide a json blob, fileID, or use previous post's file.")
 
 	cmd.AddCommand(listCmd)
 	cmd.AddCommand(showCmd)

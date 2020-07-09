@@ -20,8 +20,8 @@ var cmdHandler = CommandHandler{
 		"list":    executeList,
 		"show":    executeShow,
 		"update":  executeUpdate,
-		"backup":  executeBackup,
-		"restore": executeRestore,
+		"backup":  executeBackupSQL,
+		"restore": executeRestoreSQL,
 		"delete":  executeDelete,
 		"clear":   executeClear,
 		"scratch": executeScratch,
@@ -40,7 +40,8 @@ func (ch CommandHandler) Handle(p *Plugin, c *plugin.Context, header *model.Comm
 }
 
 func newCommand(pluginID string) *model.Command {
-	trigger := "kvadmin-" + pluginID
+	trigger := "kvadmin"
+	// trigger := "kvadmin-" + pluginID
 
 	cmd := model.NewAutocompleteData(trigger, "[list|show|put|backup|restore]", "Manage and Backup/Restore data in your kv store.")
 
@@ -73,7 +74,8 @@ func executeDefault(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, cmdArgs *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	args := strings.Fields(cmdArgs.Command)
-	if len(args) == 0 || args[0] != "/kvadmin-"+manifest.Id {
+	if len(args) == 0 || args[0] != "/kvadmin" {
+		// if len(args) == 0 || args[0] != "/kvadmin-"+manifest.Id {
 		return p.responsef(cmdArgs, "expected kvadmin command"), nil
 	}
 

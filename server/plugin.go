@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	pluginapi "github.com/mattermost/mattermost-plugin-api"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
@@ -35,6 +36,8 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
+
+	client *pluginapi.Client
 }
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
@@ -47,6 +50,8 @@ func (p *Plugin) OnActivate() error {
 
 	cmd := newCommand(manifest.Id)
 	p.API.RegisterCommand(cmd)
+
+	p.client = pluginapi.NewClient(p.API)
 
 	return nil
 }

@@ -3,12 +3,116 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/pkg/errors"
 )
+
+func executeRestoreSQL(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, args ...string) *model.CommandResponse {
+	if len(args) == 0 {
+		return p.responsef(cmdArgs, "Please a plugin ID")
+	}
+
+	out := map[string]*model.PluginKeyValue{}
+	valuesWithString := map[string]*KVWithString{}
+	var data []byte
+
+	var fileID string
+	var err error
+	if len(args) == 1 {
+		fileID, err = p.getRecentPostFileID(cmdArgs.ChannelId)
+		if err != nil {
+			return p.responsef(cmdArgs, "Error getting file id from previous post. err=%v", err)
+		}
+	} else {
+		fileID = args[1]
+	}
+
+	file, appErr := p.API.GetFile(fileID)
+	if appErr != nil {
+		return p.responsef(cmdArgs, "Error fetching file `%s`. err=%v", fileID, appErr)
+	}
+
+	data = file
+	err = json.Unmarshal(data, &valuesWithString)
+	if err != nil {
+		return p.responsef(cmdArgs, "Error unmarshaling payload. err=%v", err)
+	}
+
+	for key, value := range valuesWithString {
+		var toSave []byte
+
+		toSave, err = base64.StdEncoding.DecodeString(value.Value)
+		if err != nil {
+			return p.responsef(cmdArgs, "Error decoding key `%s`. err=%v", key, err)
+		}
+
+		out[key] = &model.PluginKeyValue{
+			PluginId: value.PluginId,
+			Key:      value.Key,
+			Value:    toSave,
+			ExpireAt: value.ExpireAt,
+		}
+	}
+
+	err = p.deleteAllKeys(args[0])
+	if err != nil {
+		return p.responsef(cmdArgs, "Error deleting keys. err=%v", err)
+	}
+
+	db, err := p.client.Store.GetMasterDB()
+	if err != nil {
+		return p.responsef(cmdArgs, errors.Wrap(err, "failed to get a database connection").Error())
+	}
+
+	for key, value := range out {
+		_, err := db.Exec("INSERT into PluginKeyValueStore VALUES (?, ?, ?, ?)", value.PluginId, value.Key, value.Value, value.ExpireAt)
+		if err != nil {
+			return p.responsef(cmdArgs, errors.Wrap(err, "failed to insert for key "+key).Error())
+		}
+	}
+
+	return p.responsef(cmdArgs, "Successfully restored %d values", len(out))
+}
+
+func (p *Plugin) insertKeyValue(pluginID, key string, valye []byte) error {
+	db, err := p.client.Store.GetMasterDB()
+	if err != nil {
+		return errors.Wrap(err, "failed to get a database connection")
+	}
+
+	q := fmt.Sprintf(`
+		DELETE FROM PluginKeyValueStore WHERE PluginId = '%s'
+	`, pluginID)
+
+	_, err = db.Query(q)
+	if err != nil {
+		return errors.Wrap(err, "error querying database")
+	}
+
+	return nil
+}
+
+func (p *Plugin) deleteAllKeys(pluginID string) error {
+	db, err := p.client.Store.GetMasterDB()
+	if err != nil {
+		return errors.Wrap(err, "failed to get a database connection")
+	}
+
+	q := fmt.Sprintf(`
+		DELETE FROM PluginKeyValueStore WHERE PluginId = '%s'
+	`, pluginID)
+
+	_, err = db.Query(q)
+	if err != nil {
+		return errors.Wrap(err, "error querying database")
+	}
+
+	return nil
+}
 
 func executeRestore(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, args ...string) *model.CommandResponse {
 	if len(args) == 0 {
@@ -52,7 +156,7 @@ func executeRestore(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, ar
 		switch value.(type) {
 		case string:
 			toSave = []byte(value.(string))
-			if isGeneratedKeyValue(key) {
+			if isGeneratedKeyValue(key) || true {
 				toSave, err = base64.StdEncoding.DecodeString(value.(string))
 				if err != nil {
 					return p.responsef(cmdArgs, "Error decoding key `%s`. err=%v", key, err)

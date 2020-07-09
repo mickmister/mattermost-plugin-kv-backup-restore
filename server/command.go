@@ -24,6 +24,7 @@ var cmdHandler = CommandHandler{
 		"restore": executeRestore,
 		"delete":  executeDelete,
 		"clear":   executeClear,
+		"scratch": executeScratch,
 	},
 	defaultHandler: executeDefault,
 }

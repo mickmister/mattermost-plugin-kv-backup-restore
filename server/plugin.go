@@ -47,7 +47,6 @@ func (p *Plugin) OnActivate() error {
 
 	cmd := newCommand(manifest.Id)
 	p.API.RegisterCommand(cmd)
+
 	return nil
 }
-
-// See https://developers.mattermost.com/extend/plugins/server/reference/

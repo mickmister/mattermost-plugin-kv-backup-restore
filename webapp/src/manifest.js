@@ -2,11 +2,11 @@
 
 const manifest = JSON.parse(`
 {
-    "id": "com.mattermost.plugin-starter-template",
-    "name": "Plugin Starter Template",
-    "description": "This plugin serves as a starting point for writing a Mattermost plugin.",
-    "version": "0.1.0",
-    "min_server_version": "5.12.0",
+    "id": "kv-backup-restore",
+    "name": "KV Store Backup/Restore",
+    "description": "This plugin helps save the state of a given plugin's kvstore values.",
+    "version": "0.2.0",
+    "min_server_version": "5.24.0",
     "server": {
         "executables": {
             "linux-amd64": "server/dist/plugin-linux-amd64",

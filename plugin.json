@@ -2,7 +2,7 @@
     "id": "kv-backup-restore",
     "name": "KV Store Backup/Restore",
     "description": "This plugin helps save the state of a given plugin's kvstore values.",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "min_server_version": "5.24.0",
     "server": {
         "executables": {

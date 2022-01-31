@@ -17,14 +17,19 @@ type CommandHandler struct {
 
 var cmdHandler = CommandHandler{
 	handlers: map[string]CommandHandlerFunc{
-		"list":    executeList,
-		"show":    executeShow,
-		"update":  executeUpdate,
+		// "list":         executeList,
+		// "show":         executeShow,
+		// "update":       executeUpdate,
 		"backup":  executeBackupSQL,
 		"restore": executeRestoreSQL,
-		"delete":  executeDelete,
-		"clear":   executeClear,
-		"scratch": executeScratch,
+		// "delete":       executeDelete,
+		// "clear":        executeClear,
+		"get-config":   executeGetConfig,
+		"clear-config": executeClearConfig,
+		"clear-kv":     executeClearKV,
+		"clear":        executeClear,
+		"reset":        executeResetPlugin,
+		"scratch":      executeScratch,
 	},
 	defaultHandler: executeDefault,
 }
@@ -45,17 +50,37 @@ func newCommand(pluginID string) *model.Command {
 
 	cmd := model.NewAutocompleteData(trigger, "[list|show|put|backup|restore]", "Manage and Backup/Restore data in your kv store.")
 
-	listCmd := model.NewAutocompleteData("list", "", "List all keys in the kvstore.")
-	showCmd := model.NewAutocompleteData("show", "[key]", "Show the value of one kv entry.")
-	updateCommand := model.NewAutocompleteData("update", "[key] [value | file]", "Update one kv entry's value.")
-	backupCmd := model.NewAutocompleteData("backup", "[file?]", "Receive a json blob of the whole kvstore for this plugin. Use `file` to receive a file instead. Using the `file` argument will result in a public post.")
-	restoreCmd := model.NewAutocompleteData("restore", "[json blob | file]", "Set all key values in the kvstore. Provide a json blob, fileID, or use previous post's file.")
+	// listCmd := model.NewAutocompleteData("list", "[plugin id]", "List all keys in the kvstore.")
+	// showCmd := model.NewAutocompleteData("show", "[key]", "Show the value of one kv entry.")
+	// updateCommand := model.NewAutocompleteData("update", "[key] [value | file]", "Update one kv entry's value.")
+	backupCmd := model.NewAutocompleteData("backup", "[plugin id]", "Receive a json file of the whole kvstore for this plugin.")
+	restoreCmd := model.NewAutocompleteData("restore", "[plugin id] ?[file id]", "Set all key values in the kvstore. Provide a fileID, or use previous post's file.")
+	getConfigCmd := model.NewAutocompleteData("get-config", "[plugin id]", "Get the config for a plugin.")
+	clearCmd := model.NewAutocompleteData("clear", "[plugin id]", "Clear the kv store and config for a plugin.")
+	clearConfigCmd := model.NewAutocompleteData("clear-config", "[plugin id]", "Clear the config for a plugin.")
+	clearKVCmd := model.NewAutocompleteData("clear-kv", "[plugin id]", "Clear the kv store for a plugin.")
+	resetCmd := model.NewAutocompleteData("reset", "[plugin id]", "Enable and disable a plugin.")
 
-	cmd.AddCommand(listCmd)
-	cmd.AddCommand(showCmd)
-	cmd.AddCommand(updateCommand)
+	// "list":         executeList,
+	// "show":         executeShow,
+	// "update":       executeUpdate,
+	// "backup":       executeBackupSQL,
+	// "restore":      executeRestoreSQL,
+	// "delete":       executeDelete,
+	// "clear":        executeClear,
+	// "clear-config": executeClearConfig,
+	// "scratch":      executeScratch,
+
+	// cmd.AddCommand(listCmd)
+	// cmd.AddCommand(showCmd)
+	// cmd.AddCommand(updateCommand)
 	cmd.AddCommand(backupCmd)
 	cmd.AddCommand(restoreCmd)
+	cmd.AddCommand(getConfigCmd)
+	cmd.AddCommand(clearCmd)
+	cmd.AddCommand(clearConfigCmd)
+	cmd.AddCommand(clearKVCmd)
+	cmd.AddCommand(resetCmd)
 
 	return &model.Command{
 		Trigger:          trigger,

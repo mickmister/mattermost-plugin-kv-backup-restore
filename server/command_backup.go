@@ -61,7 +61,7 @@ func executeBackupSQL(p *Plugin, c *plugin.Context, cmdArgs *model.CommandArgs, 
 		allValues[key] = kv
 	}
 
-	b, err := json.Marshal(allValues)
+	b, err := json.MarshalIndent(allValues, "", "  ")
 	if err != nil {
 		return p.responsef(cmdArgs, errors.Wrap(err, "error marshaling response").Error())
 	}

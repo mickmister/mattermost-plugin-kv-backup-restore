@@ -53,7 +53,7 @@
     "jest-junit": "10.0.0",
     "mattermost-webapp": "github:mattermost/mattermost-webapp#23f5f93d9f12a7e2b5623e5cee6814366abd9a0f",
     "webpack": "4.35.0",
-    "webpack-cli": "3.3.5"
+    "webpack-cli": "3.3.12"
   },
   "dependencies": {
     "core-js": "3.6.2",
